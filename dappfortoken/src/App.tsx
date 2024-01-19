@@ -28,16 +28,17 @@ import './styles.css';
 import backgroundGif from './gold.gif';
 import tokenGif from './token.gif';
 import tokenLogo from './token.png';
+import tokenSvg from './token.svg';
 
 import MainTextLogo from './headerlogo.png';
 
 const CONTRACT_ADDRESS = '0xca695feb6b1b603ca9fec66aaa98be164db4e660';
-const TOKEN_ADDRESS = '0x0F966D8c1499c1848CDd16daa6D45081d625177f';
+const TOKEN_ADDRESS = '0xAD7F1c958159c59f01b163965B83d306E5143C39';
 
 const getExplorerLink = () => `https://bscscan.com/address/${CONTRACT_ADDRESS}`;
 const getOpenSeaURL = () => `https://opensea.io/collection/aplha-dawgz-nft-collection`;
 const getTofuNftURL = () => `https://tofunft.com/discover/items?contracts=98523`;
-
+const BLOCK_RATE_SECONDS = 3; // BSC block rate
 
 
 
@@ -119,7 +120,20 @@ function App() {
     }
   };
 
-
+  const { writeAsync: unstake1Month } = useContractWrite({
+    ...tokenContractConfig,
+    functionName: 'Unstake1Month',
+  });
+  const onUnstake1MonthClick = async () => {
+    try {
+      const tx = await unstake1Month();
+      await tx.wait();
+      toast.success('Unstaking successful!');
+    } catch (error) {
+      console.error(error);
+      toast.error('Unstaking failed. Please try again.');
+    }
+  };
 
   const onSetCostClick = async () => {
     try {
@@ -403,9 +417,9 @@ const handleAddToken = async () => {
           type: 'ERC20', // Use 'ERC721' for NFTs
           options: {
             address: TOKEN_ADDRESS, // The address that the token is at
-            symbol: 'ALPHA7', // A ticker symbol or shorthand, up to 5 characters
-            decimals: 9, // The number of decimals in the token
-            image: tokenLogo, // A string url of the token logo
+            symbol: 'LASTMAN', // A ticker symbol or shorthand, up to 5 characters
+            decimals: 18, // The number of decimals in the token
+            image: tokenSvg, // A string url of the token logo
           },
         },
       });
@@ -423,6 +437,243 @@ const handleAddToken = async () => {
     color: '#f8f8ff', // Off-white color
   };
 
+
+  const [tokenBalance, setTokenBalance] = useState('Loading...');
+
+
+    useEffect(() => {
+      const fetchTokenBalance = async () => {
+        if (address) {
+          try {
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            const tokenContract = new ethers.Contract(TOKEN_ADDRESS, tokenAbi, provider);
+
+            const balance = await tokenContract.balanceOf(address);
+            setTokenBalance(ethers.utils.formatUnits(balance, 'ether')); // Adjust 'ether' based on your token's decimals
+          } catch (error) {
+            console.error('Error fetching balance:', error);
+            setTokenBalance('Error');
+          }
+        }
+      };
+
+      fetchTokenBalance();
+    }, [address]); // Fetch balance when the address changes
+
+
+// rewards to claim read
+const [rewardsToClaim, setRewardsToClaim] = useState('Loading...');
+
+  useEffect(() => {
+    const fetchRewardsToClaim = async () => {
+      if (address) {
+        try {
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const tokenContract = new ethers.Contract(TOKEN_ADDRESS, tokenAbi, provider);
+
+          const rewards = await tokenContract.withdrawableDividendOf(address);
+          setRewardsToClaim(ethers.utils.formatUnits(rewards, 'ether')); // Adjust 'ether' based on your token's decimals
+        } catch (error) {
+          console.error('Error fetching rewards:', error);
+          setRewardsToClaim('Error');
+        }
+      }
+    };
+
+    fetchRewardsToClaim();
+  }, [address]); // Fetch rewards when the address changes
+
+
+// is the user staked
+  const [userStaked, setUserStaked] = useState('Loading...');
+
+  useEffect(() => {
+   const fetchUserStakedStatus = async () => {
+     if (address) {
+       try {
+         const provider = new ethers.providers.Web3Provider(window.ethereum);
+         const tokenContract = new ethers.Contract(TOKEN_ADDRESS, tokenAbi, provider);
+
+         const isStaked = await tokenContract._isStaked1Month(address);
+         setUserStaked(isStaked.toString());
+       } catch (error) {
+         console.error('Error fetching staking status:', error);
+         setUserStaked('Error');
+       }
+     }
+   };
+
+   fetchUserStakedStatus();
+ }, [address]); // Fetch staking status when the address changes
+
+// amount staked 1 month pool
+  const [tokensStaked1Month, setTokensStaked1Month] = useState('Loading...');
+
+  useEffect(() => {
+     const fetchTokensStaked1Month = async () => {
+       if (address) {
+         try {
+           const provider = new ethers.providers.Web3Provider(window.ethereum);
+           const tokenContract = new ethers.Contract(TOKEN_ADDRESS, tokenAbi, provider);
+
+           const tokens = await tokenContract.tokensStaked1Month(address);
+           setTokensStaked1Month(ethers.utils.formatUnits(tokens, 'ether')); // Adjust based on your token's decimals
+         } catch (error) {
+           console.error('Error fetching tokens staked for 1 month:', error);
+           setTokensStaked1Month('Error');
+         }
+       }
+     };
+
+     fetchTokensStaked1Month();
+   }, [address]); // Fetch when the address changes
+
+  const [availableBalance, setAvailableBalance] = useState('Loading...');
+
+  useEffect(() => {
+    const fetchBalances = async () => {
+      if (address) {
+        try {
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const tokenContract = new ethers.Contract(TOKEN_ADDRESS, tokenAbi, provider);
+
+          const [balance, tokensStaked] = await Promise.all([
+            tokenContract.balanceOf(address),
+            tokenContract.tokensStaked1Month(address),
+          ]);
+
+          const available = balance.sub(tokensStaked);
+          setAvailableBalance(ethers.utils.formatUnits(available, 'ether')); // Adjust based on your token's decimals
+        } catch (error) {
+          console.error('Error fetching balances:', error);
+          setAvailableBalance('Error');
+        }
+      }
+    };
+
+    fetchBalances();
+  }, [address]); // Fetch when the address changes
+
+
+  const [unlockTime, setUnlockTime] = useState('Loading...');
+
+  useEffect(() => {
+    const fetchUnlockTime = async () => {
+      if (address) {
+        try {
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const tokenContract = new ethers.Contract(TOKEN_ADDRESS, tokenAbi, provider);
+
+          const stakedTimestamp = await tokenContract._staked1MonthTimestamp(address);
+          const currentBlock = await provider.getBlock('latest');
+          const currentTime = currentBlock.timestamp;
+
+          const timeDiff = stakedTimestamp - currentTime;
+          if (timeDiff <= 0) {
+            setUnlockTime('Unlocked');
+            return;
+          }
+
+          const days = Math.floor(timeDiff / (24 * 3600));
+          const hours = Math.floor((timeDiff % (24 * 3600)) / 3600);
+          const minutes = Math.floor((timeDiff % 3600) / 60);
+          const seconds = Math.floor(timeDiff % 60);
+
+          setUnlockTime(`${days} days, ${hours} hours, ${minutes} minutes, ${seconds} seconds`);
+        } catch (error) {
+          console.error('Error fetching unlock time:', error);
+          setUnlockTime('Error');
+        }
+      }
+    };
+
+    fetchUnlockTime();
+  }, [address]);
+
+
+
+  const [stakedTimestamp, setStakedTimestamp] = useState('Loading...');
+
+  useEffect(() => {
+    const fetchStakedTimestamp = async () => {
+      if (address) {
+        try {
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const tokenContract = new ethers.Contract(TOKEN_ADDRESS, tokenAbi, provider);
+
+          const timestamp = await tokenContract._staked1MonthTimestamp(address);
+          const date = new Date(timestamp.toNumber() * 1000).toLocaleString(); // Convert timestamp to readable date
+          setStakedTimestamp(date);
+        } catch (error) {
+          console.error('Error fetching staked timestamp:', error);
+          setStakedTimestamp('Error');
+        }
+      }
+    };
+
+    fetchStakedTimestamp();
+  }, [address]);
+
+
+  const [stakedBlockNumber, setStakedBlockNumber] = useState('Loading...');
+
+  useEffect(() => {
+   const fetchStakedBlockNumber = async () => {
+     if (address) {
+       try {
+         const provider = new ethers.providers.Web3Provider(window.ethereum);
+         const tokenContract = new ethers.Contract(TOKEN_ADDRESS, tokenAbi, provider);
+
+         const stakedTimestampBN = await tokenContract._staked1MonthTimestamp(address);
+         const stakedTimestamp = stakedTimestampBN.toNumber();
+
+         const currentBlock = await provider.getBlock('latest');
+         const currentTimestamp = currentBlock.timestamp;
+         const currentBlockNumber = currentBlock.number;
+
+         // Estimate the block number of the staked timestamp
+         const blockDifference = (stakedTimestamp - currentTimestamp) / BLOCK_RATE_SECONDS;
+         const estimatedStakedBlockNumber = currentBlockNumber + Math.round(blockDifference);
+
+         setStakedBlockNumber(estimatedStakedBlockNumber.toString());
+       } catch (error) {
+         console.error('Error fetching staked block number:', error);
+         setStakedBlockNumber('Error');
+       }
+     }
+   };
+
+   fetchStakedBlockNumber();
+ }, [address]);
+
+   const [unlockDate, setUnlockDate] = useState('Loading...');
+
+   useEffect(() => {
+    const fetchUnlockDate = async () => {
+      if (address) {
+        try {
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const tokenContract = new ethers.Contract(TOKEN_ADDRESS, tokenAbi, provider);
+
+          const stakedTimestampBN = await tokenContract._staked1MonthTimestamp(address);
+          const stakedTimestamp = stakedTimestampBN.toNumber();
+
+          // Add 30 days to the staked timestamp
+          const unlockTimestamp = new Date(stakedTimestamp * 1000);
+          unlockTimestamp.setDate(unlockTimestamp.getDate() + 30);
+
+          setUnlockDate(unlockTimestamp.toLocaleDateString());
+        } catch (error) {
+          console.error('Error fetching unlock date:', error);
+          setUnlockDate('Error');
+        }
+      }
+    };
+
+    fetchUnlockDate();
+  }, [address]);
+
+
   return (
     <>
       <header className="header">
@@ -439,35 +690,54 @@ const handleAddToken = async () => {
 
         <div className="row row-1">
                   {/* Apply the logobody class to the image */}
+                  <img src={tokenLogo} alt="Main Text Logo" className="logobody" />
+
                   {/* Rest of your first row content */}
                 </div>
         <div className="row row-3">
 
                                                     <div>
+                                                    <Box display='flex' flexDirection='column' alignItems='center' justifyContent='center' marginTop='4'>
+
                                                     <Button
                                                             marginTop='6'
                                                             onClick={handleAddToken}
                                                             textColor='white'
-                                                            bg='#094da7'
+                                                            bg='#a37824'
                                                             _hover={{
-                                                              bg: '#0b6be8',
+                                                              bg: '#fab837',
                                                             }}
                                                           >
                                                             Add Lastman Token to MetaMask
                                                           </Button>
 
+                                                          </Box>
+
+
+      <div>Rewarded to user so far : {rewardsToClaim} XRP</div>
 
                                                           {/* Claim Section */}
                                                         <Box display='flex' flexDirection='column' alignItems='center' justifyContent='center' marginTop='4'>
                                                           <Button
                                                             onClick={onClaimClick}
                                                             textColor='white'
-                                                            bg='#094da7'
-                                                            _hover={{ bg: '#0b6be8' }}
+                                                            bg='#a37824'
+                                                            _hover={{ bg: '#fab837' }}
                                                           >
                                                             Claim Tokens
                                                           </Button>
                                                         </Box>
+
+                                                        <Box
+                                                          display='flex'
+                                                          flexDirection='column'
+                                                          alignItems='center'
+                                                          justifyContent='center'
+                                                          marginTop='4'
+                                                          style={{ backgroundColor: '#211202' }} // Light dark grey color
+                                                        >
+
+
 
                                             {/* Staking Section */}
       <Box display='flex' flexDirection='column' alignItems='center' justifyContent='center' marginTop='4'>
@@ -482,12 +752,46 @@ const handleAddToken = async () => {
           onClick={onStakeClick}
           marginTop='2'
           textColor='white'
-          bg='#094da7'
-          _hover={{ bg: '#0b6be8' }}
+          bg='#a37824'
+          _hover={{ bg: '#fab837' }}
         >
           Stake for 1 Month
         </Button>
       </Box>
+      {/* Unstake Section */}
+    <Box display='flex' flexDirection='column' alignItems='center' justifyContent='center' marginTop='4'>
+      <Button
+        onClick={onUnstake1MonthClick}
+        textColor='white'
+        bg='#a37824'
+        _hover={{ bg: '#fab837' }}
+      >
+        Unstake for 1 Month
+      </Button>
+    </Box>
+          <div>1 month active Stake: {userStaked}</div>
+          <div>Your Tokens Staked for 1 Month: {tokensStaked1Month}</div>
+          <div>Staked on: {stakedTimestamp}</div>
+                <div>Unlock Date: {unlockDate}</div>
+
+                </Box>
+
+
+
+                <Box
+                  display='flex'
+                  flexDirection='column'
+                  alignItems='center'
+                  justifyContent='center'
+                  marginTop='4'
+                  style={{ backgroundColor: '#432f06' }} // Light dark grey color
+                >
+                  <div>Your Lastman Balance: {tokenBalance}</div>
+                  <div>Your total tokens staked all pools: {tokensStaked1Month}</div>
+                  <div>Available Balance: {availableBalance}</div>
+                </Box>
+
+
 
                                                   </div>
                 </div>

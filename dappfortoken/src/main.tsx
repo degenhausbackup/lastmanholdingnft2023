@@ -44,7 +44,7 @@ const bsc: Chain = {
 };
 
 const { chains, provider } = configureChains(
-  [bsc],
+  [maxxChain],
   [
     jsonRpcProvider({
       rpc: () => {
