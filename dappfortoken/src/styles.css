@@ -1,0 +1,167 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  color: white; /* Set default text color to white */
+  /* Remove padding-top from here */
+}
+
+/* Fixed Header Styles */
+header {
+  position: fixed; /* Fix the header at the top */
+  top: 0;
+  left: 0;
+  width: 100%; /* Ensure header spans entire width */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background-color: #222;
+  z-index: 1000; /* Ensures header stays above all other content */
+}
+
+.connect-button {
+  margin-left: auto;
+}
+
+.logoheader {
+  width: 100px;
+  height: auto;
+  margin-right: 10px;
+}
+.header-text {
+  font-size: 98px; /* Increased font size */
+  font-weight: bold; /* Make the text bolder */
+}
+
+/* Wrapper Styles */
+.wrapper {
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  place-items: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #222;
+}
+.logobody {
+  display: block; /* Use block level for proper alignment */
+  margin: 0 auto; /* Center the logo */
+  max-width: 100%; /* Ensure it's responsive and doesn't overflow */
+  height: 200px; /* Maintain aspect ratio */
+}
+
+/* Main Container Styles */
+.container {
+    padding-top: 70px;
+  background-image: url('./bkg.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: calc(100vh - 0px);
+  gap: 3.21px;
+  overflow: auto;
+}
+
+/* Row Styles */
+.row {
+  width: 100%;
+  min-height: 350px;
+  color: white;
+  display: flex;
+  border-radius: 25px;
+}
+
+
+.row-1 {
+  min-height: 200px;
+  border-radius: 25px;
+  color: white;
+  padding: 0 20%; /* 20% padding on each side */
+  display: flex; /* Align items with flexbox */
+  justify-content: center; /* Center items horizontally */
+  align-items: center; /* Center items vertically */
+}
+
+.row-1_0 {
+  min-height: 90px;
+  border-radius: 25px;
+  color: white;
+  padding: 0 15%; /* 15% padding on each side */
+  display: flex; /* Align items with flexbox */
+  justify-content: center; /* Center items horizontally */
+  align-items: center; /* Center items vertically */
+}
+
+.row-1_1 {
+  min-height: 140px;
+  border-radius: 25px;
+  color: white;
+  padding: 0 15%; /* 15% padding on each side */
+  display: flex; /* Align items with flexbox */
+  justify-content: center; /* Center items horizontally */
+  align-items: center; /* Center items vertically */
+  background-color: rgba(0, 0, 0, 0.6); /* or any other desired background */
+}
+
+.row-3 {
+  min-height: 500px;
+  border-radius: 25px;
+  color: white;
+  padding: 0 15%; /* 15% padding on each side */
+  display: flex; /* Align items with flexbox */
+  justify-content: center; /* Center items horizontally */
+  align-items: center; /* Center items vertically */
+  background-color: rgba(0, 0, 0, 0.6); /* or any other desired background */
+}
+
+.row-4 {
+  min-height: 75px;
+  flex-grow: 1;
+  background-color: rgba(0, 0, 0, 0.9);
+}
+
+.row-2 {
+  min-height: 500px;
+  border-radius: 25px;
+  color: white;
+  padding: 0 15%; /* 15% padding on each side */
+  display: flex; /* Align items with flexbox */
+  justify-content: center; /* Center items horizontally */
+  align-items: center; /* Center items vertically */
+  background-color: rgba(0, 0, 0, 0.6); /* or any other desired background */
+    min-width: 700px;
+    flex-grow: 1;
+}
+
+/* Column Styles */
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 3.21px;
+}
+
+.column-left, .column-right {
+  min-width: 700px;
+  flex-grow: 1;
+}
+
+.sub-row {
+  flex-grow: 1;
+  min-height: 200px;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .row-2 {
+    flex-direction: column;
+  }
+
+  .column-left, .column-right {
+    min-width: 100%;
+  }
+}
