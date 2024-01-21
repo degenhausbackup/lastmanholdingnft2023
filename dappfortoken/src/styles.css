@@ -49,7 +49,12 @@ header {
   display: block; /* Use block level for proper alignment */
   margin: 0 auto; /* Center the logo */
   max-width: 100%; /* Ensure it's responsive and doesn't overflow */
-  height: 200px; /* Maintain aspect ratio */
+  height: 125px; /* Maintain aspect ratio */
+}
+.logobodyheader {
+  display: block; /* Use block level for proper alignment */
+  margin: 0 auto; /* Center the logo */
+  height: 96px; /* Maintain aspect ratio */
 }
 
 /* Main Container Styles */

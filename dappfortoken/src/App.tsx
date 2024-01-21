@@ -33,7 +33,8 @@ import tokenSvg from './token.svg';
 import MainTextLogo from './headerlogo.png';
 
 const CONTRACT_ADDRESS = '0xca695feb6b1b603ca9fec66aaa98be164db4e660';
-const TOKEN_ADDRESS = '0xAD7F1c958159c59f01b163965B83d306E5143C39';
+// const TOKEN_ADDRESS = '0xdedC661d414619C3E838e6845830456f71d2f98a';
+const TOKEN_ADDRESS = '0xAD7F1c958159c59f01b163965B83d306E5143C39'; //og lastman
 
 const getExplorerLink = () => `https://bscscan.com/address/${CONTRACT_ADDRESS}`;
 const getOpenSeaURL = () => `https://opensea.io/collection/aplha-dawgz-nft-collection`;
@@ -131,7 +132,7 @@ function App() {
       toast.success('Unstaking successful!');
     } catch (error) {
       console.error(error);
-      toast.error('Unstaking failed. Please try again.');
+      toast.error('Unstaking failed. Please Check your Unlock Date in dapp.');
     }
   };
 
@@ -437,32 +438,7 @@ const handleAddToken = async () => {
     color: '#f8f8ff', // Off-white color
   };
 
-
-  const [tokenBalance, setTokenBalance] = useState('Loading...');
-
-
-    useEffect(() => {
-      const fetchTokenBalance = async () => {
-        if (address) {
-          try {
-            const provider = new ethers.providers.Web3Provider(window.ethereum);
-            const tokenContract = new ethers.Contract(TOKEN_ADDRESS, tokenAbi, provider);
-
-            const balance = await tokenContract.balanceOf(address);
-            setTokenBalance(ethers.utils.formatUnits(balance, 'ether')); // Adjust 'ether' based on your token's decimals
-          } catch (error) {
-            console.error('Error fetching balance:', error);
-            setTokenBalance('Error');
-          }
-        }
-      };
-
-      fetchTokenBalance();
-    }, [address]); // Fetch balance when the address changes
-
-
-// rewards to claim read
-const [rewardsToClaim, setRewardsToClaim] = useState('Loading...');
+  const [rewardsToClaim, setRewardsToClaim] = useState('Loading...');
 
   useEffect(() => {
     const fetchRewardsToClaim = async () => {
@@ -472,7 +448,9 @@ const [rewardsToClaim, setRewardsToClaim] = useState('Loading...');
           const tokenContract = new ethers.Contract(TOKEN_ADDRESS, tokenAbi, provider);
 
           const rewards = await tokenContract.withdrawableDividendOf(address);
-          setRewardsToClaim(ethers.utils.formatUnits(rewards, 'ether')); // Adjust 'ether' based on your token's decimals
+          // Format rewards and set it to 4 decimal places
+          const formattedRewards = ethers.utils.formatUnits(rewards, 'ether');
+          setRewardsToClaim(parseFloat(formattedRewards).toFixed(4)); // Now the rewards are a string with 4 decimal places
         } catch (error) {
           console.error('Error fetching rewards:', error);
           setRewardsToClaim('Error');
@@ -528,31 +506,36 @@ const [rewardsToClaim, setRewardsToClaim] = useState('Loading...');
      fetchTokensStaked1Month();
    }, [address]); // Fetch when the address changes
 
-  const [availableBalance, setAvailableBalance] = useState('Loading...');
 
-  useEffect(() => {
-    const fetchBalances = async () => {
-      if (address) {
-        try {
-          const provider = new ethers.providers.Web3Provider(window.ethereum);
-          const tokenContract = new ethers.Contract(TOKEN_ADDRESS, tokenAbi, provider);
+// available balance after staking locks
+const [availableBalance, setAvailableBalance] = useState('Loading...');
 
-          const [balance, tokensStaked] = await Promise.all([
-            tokenContract.balanceOf(address),
-            tokenContract.tokensStaked1Month(address),
-          ]);
+useEffect(() => {
+  const fetchBalances = async () => {
+    if (address) {
+      try {
+        const provider = new ethers.providers.Web3Provider(window.ethereum);
+        const tokenContract = new ethers.Contract(TOKEN_ADDRESS, tokenAbi, provider);
 
-          const available = balance.sub(tokensStaked);
-          setAvailableBalance(ethers.utils.formatUnits(available, 'ether')); // Adjust based on your token's decimals
-        } catch (error) {
-          console.error('Error fetching balances:', error);
-          setAvailableBalance('Error');
-        }
+        const [balance, tokensStaked] = await Promise.all([
+          tokenContract.balanceOf(address),
+          tokenContract.tokensStaked1Month(address),
+        ]);
+
+        const available = balance.sub(tokensStaked);
+        // Format balance and set it to 2 decimal places
+        const formattedAvailable = ethers.utils.formatUnits(available, 'ether');
+        setAvailableBalance(parseFloat(formattedAvailable).toFixed(2)); // Now the balance is a string with 2 decimal places
+      } catch (error) {
+        console.error('Error fetching balances:', error);
+        setAvailableBalance('Error');
       }
-    };
+    }
+  };
 
-    fetchBalances();
-  }, [address]); // Fetch when the address changes
+  fetchBalances();
+}, [address]); // Fetch when the address changes
+
 
 
   const [unlockTime, setUnlockTime] = useState('Loading...');
@@ -674,10 +657,120 @@ const [rewardsToClaim, setRewardsToClaim] = useState('Loading...');
   }, [address]);
 
 
+//fetch token pricePerToken in usd
+const [tokenPriceUSD, setTokenPriceUSD] = useState('Loading...');
+  const tokenAddress = '0xa7efd5d0575cd4682b0c83155bb9e4ff1a85a6f9'; // Your token address
+
+  useEffect(() => {
+    const url = `https://api.geckoterminal.com/api/v2/simple/networks/bsc/token_price/${tokenAddress}`;
+
+    fetch(url)
+      .then(response => response.json())
+      .then(data => {
+        if (data && data.data && data.data.attributes && data.data.attributes.token_prices) {
+          const price = data.data.attributes.token_prices[tokenAddress];
+          setTokenPriceUSD(`${parseFloat(price).toFixed(6)} USD`); // Format the price to 6 decimal places
+        } else {
+          setTokenPriceUSD('Price not available');
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching token price:', error);
+        setTokenPriceUSD('Error fetching price');
+      });
+  }, []);
+
+  const [xrpPriceUSD, setXrpPriceUSD] = useState('Loading...');
+ const xrpTokenAddress = '0x1d2f0da169ceb9fc7b3144628db156f3f6c60dbe'; // XRP token address on BSC
+
+ useEffect(() => {
+   const url = `https://api.geckoterminal.com/api/v2/simple/networks/bsc/token_price/${xrpTokenAddress}`;
+
+   fetch(url)
+     .then(response => response.json())
+     .then(data => {
+       if (data && data.data && data.data.attributes && data.data.attributes.token_prices) {
+         const price = data.data.attributes.token_prices[xrpTokenAddress];
+         setXrpPriceUSD(`${parseFloat(price).toFixed(6)} USD`); // Format the price to 6 decimal places
+       } else {
+         setXrpPriceUSD('Price not available');
+       }
+     })
+     .catch(error => {
+       console.error('Error fetching XRP price:', error);
+       setXrpPriceUSD('Error fetching price');
+     });
+ }, []);
+
+ const [bnbPriceUSD, setBnbPriceUSD] = useState('Loading...');
+const bnbTokenAddress = '0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c'; // BNB token address on BSC
+
+useEffect(() => {
+  const url = `https://api.geckoterminal.com/api/v2/simple/networks/bsc/token_price/${bnbTokenAddress}`;
+
+  fetch(url)
+    .then(response => response.json())
+    .then(data => {
+      if (data && data.data && data.data.attributes && data.data.attributes.token_prices) {
+        const price = data.data.attributes.token_prices[bnbTokenAddress];
+        setBnbPriceUSD(`${parseFloat(price).toFixed(2)} USD`); // Format the price to 6 decimal places
+      } else {
+        setBnbPriceUSD('Price not available');
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching BNB price:', error);
+      setBnbPriceUSD('Error fetching price');
+    });
+}, []);
+
+const [rewardsValueInUSD, setRewardsValueInUSD] = useState('Loading...');
+
+  useEffect(() => {
+    // Calculate rewards in USD
+    const xrpPrice = parseFloat(xrpPriceUSD.replace(' USD', ''));
+    const rewardsAmount = parseFloat(rewardsToClaim);
+
+    if (!isNaN(xrpPrice) && !isNaN(rewardsAmount)) {
+      const calculatedValue = (rewardsAmount * xrpPrice).toFixed(2); // Format the result to 2 decimal places
+      setRewardsValueInUSD(`${calculatedValue} USD`);
+    } else {
+      setRewardsValueInUSD('Calculating...');
+    }
+  }, [xrpPriceUSD, rewardsToClaim]);
+
+
+  // fetch token balance
+  const [tokenBalance, setTokenBalance] = useState('Loading...');
+
+  useEffect(() => {
+    const fetchTokenBalance = async () => {
+      if (address) {
+        try {
+          const provider = new ethers.providers.Web3Provider(window.ethereum);
+          const tokenContract = new ethers.Contract(TOKEN_ADDRESS, tokenAbi, provider);
+
+          const balance = await tokenContract.balanceOf(address);
+          // Format balance and set it to 2 decimal places
+          const formattedBalance = ethers.utils.formatUnits(balance, 'ether');
+          setTokenBalance(parseFloat(formattedBalance).toFixed(2)); // Now the balance is a string with 2 decimal places
+        } catch (error) {
+          console.error('Error fetching balance:', error);
+          setTokenBalance('Error');
+        }
+      }
+    };
+
+    fetchTokenBalance();
+  }, [address]); // Fetch balance when the address changes
+
+
   return (
     <>
+     <ToastContainer />
       <header className="header">
-          <div style={headerTextStyle}>Lastman Stake Test1</div>
+
+          <div style={headerTextStyle}>Lastman </div>
           <div className="connect-button">
             <ConnectButton />
         </div>
@@ -686,63 +779,74 @@ const [rewardsToClaim, setRewardsToClaim] = useState('Loading...');
 
 
       <div className="container">
+
+
       <div className="row row-1_0"></div>
 
         <div className="row row-1">
                   {/* Apply the logobody class to the image */}
-                  <img src={tokenLogo} alt="Main Text Logo" className="logobody" />
 
                   {/* Rest of your first row content */}
                 </div>
         <div className="row row-3">
 
                                                     <div>
-                                                    <Box display='flex' flexDirection='column' alignItems='center' justifyContent='center' marginTop='4'>
 
-                                                    <Button
-                                                            marginTop='6'
-                                                            onClick={handleAddToken}
-                                                            textColor='white'
-                                                            bg='#a37824'
-                                                            _hover={{
-                                                              bg: '#fab837',
-                                                            }}
-                                                          >
-                                                            Add Lastman Token to MetaMask
-                                                          </Button>
-
-                                                          </Box>
-
-
-      <div>Rewarded to user so far : {rewardsToClaim} XRP</div>
-
-                                                          {/* Claim Section */}
-                                                        <Box display='flex' flexDirection='column' alignItems='center' justifyContent='center' marginTop='4'>
-                                                          <Button
-                                                            onClick={onClaimClick}
-                                                            textColor='white'
-                                                            bg='#a37824'
-                                                            _hover={{ bg: '#fab837' }}
-                                                          >
-                                                            Claim Tokens
-                                                          </Button>
-                                                        </Box>
-
-                                                        <Box
-                                                          display='flex'
-                                                          flexDirection='column'
-                                                          alignItems='center'
-                                                          justifyContent='center'
-                                                          marginTop='4'
-                                                          style={{ backgroundColor: '#211202' }} // Light dark grey color
-                                                        >
+                                                          <img src={tokenLogo} alt="Main Text Logo" className="logobody" />
+                                                          <div style={{ fontSize: '80px', fontWeight: 'bold', textAlign: 'center', color: 'white', marginBottom: '1px' }}>
+                                                    Lastman
+                                                    </div>
+                                                    <div style={{ fontSize: '20px', fontWeight: 'bold', textAlign: 'center', color: 'white', marginBottom: '10px' }}>
+                                              Token Staking with XRP Reflections
+                                              </div>
+                                              <Box
+                                                display='flex'
+                                                flexDirection='column'
+                                                alignItems='center'
+                                                justifyContent='center'
+                                                marginTop='4'
+                                              >
+                                                <div> Your Total Token Balance: {tokenBalance} </div>
+                                                <div>  your Staked Balance all pools: {tokensStaked1Month}</div>
+                                                <div>Available Balance: {availableBalance} Tokens</div>
 
 
+                                                                </Box>
+
+
+        <div style={{ fontSize: '30px', fontWeight: 'bold', textAlign: 'center', marginBottom: '20px' }}>
+              Your XRP rewards
+        </div>
+        <div style={{ fontSize: '36px', fontWeight: 'bold', textAlign: 'center', marginBottom: '20px' }}>
+{rewardsToClaim} XRP ( {rewardsValueInUSD} value)</div>
+
+
+                                                        <Tabs isFitted variant="enclosed">
+                                                        <TabList>
+    <Tab style={{ fontWeight: 'bold', color: 'white' }}>30 day</Tab>
+    <Tab style={{ fontWeight: 'bold', color: 'white' }}>60 day</Tab>
+    <Tab style={{ fontWeight: 'bold', color: 'white' }}>90 day</Tab>
+  </TabList>
+
+                                                                  <TabPanels>
+                                                                    <TabPanel>
+                                                                                                                            <Box
+                                                                                                                              display='flex'
+                                                                                                                              flexDirection='column'
+                                                                                                                              alignItems='center'
+                                                                                                                              justifyContent='center'
+                                                                                                                              marginTop='4'
+                                                                                                                              style={{ backgroundColor: '#211202' }} // Light dark grey color
+                                                                                                                              >
+
+                                                                                                                              <div style={{ fontSize: '24px', fontWeight: 'bold', textAlign: 'center', marginBottom: '20px' }}>
+                                                                                                                                30 Day Staking Pool
+                                                                                                                              </div>
 
                                             {/* Staking Section */}
       <Box display='flex' flexDirection='column' alignItems='center' justifyContent='center' marginTop='4'>
         <Input
-          placeholder='Enter amount to stake for 1 Month'
+          placeholder='Enter amount to stake 30 Days'
           value={stakeAmount}
           onChange={(e) => setStakeAmount(e.target.value)}
           size='md'
@@ -752,10 +856,10 @@ const [rewardsToClaim, setRewardsToClaim] = useState('Loading...');
           onClick={onStakeClick}
           marginTop='2'
           textColor='white'
-          bg='#a37824'
-          _hover={{ bg: '#fab837' }}
+          bg='#b07e18'
+          _hover={{ bg: '#ffc810' }}
         >
-          Stake for 1 Month
+          Stake for 30 Days
         </Button>
       </Box>
       {/* Unstake Section */}
@@ -763,10 +867,10 @@ const [rewardsToClaim, setRewardsToClaim] = useState('Loading...');
       <Button
         onClick={onUnstake1MonthClick}
         textColor='white'
-        bg='#a37824'
-        _hover={{ bg: '#fab837' }}
+        bg='#b07e18'
+        _hover={{ bg: '#ffc810' }}
       >
-        Unstake for 1 Month
+        Unstake from 30 Day Staking
       </Button>
     </Box>
           <div>1 month active Stake: {userStaked}</div>
@@ -778,25 +882,176 @@ const [rewardsToClaim, setRewardsToClaim] = useState('Loading...');
 
 
 
-                <Box
-                  display='flex'
-                  flexDirection='column'
-                  alignItems='center'
-                  justifyContent='center'
-                  marginTop='4'
-                  style={{ backgroundColor: '#432f06' }} // Light dark grey color
+              </TabPanel>
+
+
+// 60day display to finish
+              <TabPanel>
+                                                                        <Box
+                                                                          display='flex'
+                                                                          flexDirection='column'
+                                                                          alignItems='center'
+                                                                          justifyContent='center'
+                                                                          marginTop='4'
+                                                                          style={{ backgroundColor: '#211202' }} // Light dark grey color
+                                                                          >
+
+                                                                          <div style={{ fontSize: '24px', fontWeight: 'bold', textAlign: 'center', marginBottom: '20px' }}>
+                                                                            60 Day Staking Pool
+                                                                          </div>
+
+{/* Staking Section */}
+<Box display='flex' flexDirection='column' alignItems='center' justifyContent='center' marginTop='4'>
+<Input
+placeholder='Enter amount to stake 60 Days'
+value={stakeAmount}
+onChange={(e) => setStakeAmount(e.target.value)}
+size='md'
+width='250px'
+/>
+<Button
+onClick={onStakeClick}
+marginTop='2'
+textColor='white'
+bg='#b07e18'
+_hover={{ bg: '#ffc810' }}
+>
+Stake for 60 Days
+</Button>
+</Box>
+{/* Unstake Section */}
+<Box display='flex' flexDirection='column' alignItems='center' justifyContent='center' marginTop='4'>
+<Button
+onClick={onUnstake1MonthClick}
+textColor='white'
+bg='#b07e18'
+_hover={{ bg: '#ffc810' }}
+>
+Unstake from 60 Day Staking
+</Button>
+</Box>
+<div>1 month active Stake: {userStaked}</div>
+<div>Your Tokens Staked for 1 Month: {tokensStaked1Month}</div>
+<div>Staked on: {stakedTimestamp}</div>
+<div>Unlock Date: {unlockDate}</div>
+
+</Box>
+
+
+
+</TabPanel>
+
+// 90day display to finish
+<TabPanel>
+                                                          <Box
+                                                            display='flex'
+                                                            flexDirection='column'
+                                                            alignItems='center'
+                                                            justifyContent='center'
+                                                            marginTop='4'
+                                                            style={{ backgroundColor: '#211202' }} // Light dark grey color
+                                                            >
+
+                                                            <div style={{ fontSize: '24px', fontWeight: 'bold', textAlign: 'center', marginBottom: '20px' }}>
+                                                              90 Day Staking Pool
+                                                            </div>
+
+{/* Staking Section */}
+<Box display='flex' flexDirection='column' alignItems='center' justifyContent='center' marginTop='4'>
+<Input
+placeholder='Enter amount to stake 90 Days'
+value={stakeAmount}
+onChange={(e) => setStakeAmount(e.target.value)}
+size='md'
+width='250px'
+/>
+<Button
+onClick={onStakeClick}
+marginTop='2'
+textColor='white'
+bg='#b07e18'
+_hover={{ bg: '#ffc810' }}
+>
+Stake for 90 Days
+</Button>
+</Box>
+{/* Unstake Section */}
+<Box display='flex' flexDirection='column' alignItems='center' justifyContent='center' marginTop='4'>
+<Button
+onClick={onUnstake1MonthClick}
+textColor='white'
+bg='#b07e18'
+_hover={{ bg: '#ffc810' }}
+>
+Unstake from 90 Day Staking
+</Button>
+</Box>
+<div>1 month active Stake: {userStaked}</div>
+<div>Your Tokens Staked for 1 Month: {tokensStaked1Month}</div>
+<div>Staked on: {stakedTimestamp}</div>
+<div>Unlock Date: {unlockDate}</div>
+
+</Box>
+
+
+
+</TabPanel>
+            </TabPanels>
+          </Tabs>
+          <div>
+
+
+                                                        {/* Claim Section */}
+                                                      <Box display='flex' flexDirection='column' alignItems='center' justifyContent='center' marginTop='4'>
+                                                        <Button
+                                                          onClick={onClaimClick}
+                                                          textColor='white'
+                                                          bg='#b07e18'
+                                                          _hover={{ bg: '#ffc810' }}
+                                                        >
+                                                          Claim Tokens
+                                                        </Button>
+                                                      </Box>
+
+          <Box display='flex' flexDirection='column' alignItems='center' justifyContent='center' marginTop='4'>
+
+          <Button
+                  marginTop='6'
+                  onClick={handleAddToken}
+                  textColor='white'
+                  bg='#b07e18'
+                  _hover={{
+                    bg: '#ffc810',
+                  }}
                 >
-                  <div>Your Lastman Balance: {tokenBalance}</div>
-                  <div>Your total tokens staked all pools: {tokensStaked1Month}</div>
-                  <div>Available Balance: {availableBalance}</div>
+                  Add Lastman Token to MetaMask
+                </Button>
+
                 </Box>
 
+<div>
+                  <Box
+                    display='flex'
+                    flexDirection='column'
+                    alignItems='center'
+                    justifyContent='center'
+                    marginTop='4'
+                    style={{ backgroundColor: '#432f06' }} // Light dark grey color
+                  >
+                  <div>
+  Token Price (USD): {tokenPriceUSD}
+</div>
+<div>
+  XRP: {xrpPriceUSD} --- BNB: {bnbPriceUSD}
+</div>
+
+                </Box>
+                                                                  </div>
 
 
                                                   </div>
                 </div>
-        <div className="row row-4">
-        </div>
+      </div>
       </div>
     </>
   );
